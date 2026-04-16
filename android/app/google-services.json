@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "340276173146",
+    "project_id": "fit-kitchen-438de",
+    "storage_bucket": "fit-kitchen-438de.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:340276173146:android:94c88db2e9e3bb0e5c7b63",
+        "android_client_info": {
+          "package_name": "com.example.fit_kitchen_demo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwy1Li9hepzIZcYNnArvw0FyJnJZYsyw8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

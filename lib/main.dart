@@ -1,104 +1,90 @@
-import 'package:fit_kitchen_demo/screens/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'core/app_strings.dart';
-import 'models/ingredient.dart';
-import 'models/recipe.dart';
-import 'models/health_profile.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'core/services/local_storage_service.dart';
+import 'core/theme/app_theme.dart';
+import 'core/constants/app_strings.dart';
 
-void main() {
+import 'core/utils/snackbar_helper.dart';
+
+// Providers
+import 'features/auth/logic/auth_provider.dart';
+import 'features/settings/logic/theme_provider.dart';
+import 'features/settings/logic/lang_provider.dart';
+import 'features/pantry/logic/pantry_provider.dart';
+import 'features/recipes/logic/recipe_provider.dart';
+import 'features/meal_planner/logic/meal_plan_provider.dart';
+import 'features/shopping/logic/shopping_provider.dart';
+import 'features/history/logic/cooking_history_provider.dart';
+import 'features/health/logic/health_provider.dart';
+
+// Screens
+import 'features/auth/presentation/login_screen.dart';
+import 'features/splash/presentation/splash_screen.dart';
+import 'screens/main_shell.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await LocalStorageService.init();
   runApp(const FitKitchenApp());
 }
 
-class FitKitchenApp extends StatefulWidget {
+class FitKitchenApp extends StatelessWidget {
   const FitKitchenApp({super.key});
 
   @override
-  State<FitKitchenApp> createState() => _FitKitchenAppState();
-}
-
-class _FitKitchenAppState extends State<FitKitchenApp> {
-  AppLang _lang = AppLang.en;
-
-  final List<Ingredient> _ingredients = [
-    Ingredient(name: 'Chicken Breast', quantity: 500, unit: 'g'),
-    Ingredient(name: 'Rice', quantity: 1000, unit: 'g'),
-    Ingredient(name: 'Tomatoes', quantity: 4, unit: 'pcs'),
-  ];
-
-  final List<Recipe> _recipes = [
-    Recipe(
-      title: 'Grilled Chicken with Rice',
-      ingredients: ['Chicken Breast', 'Rice', 'Tomatoes'],
-      steps:
-          '1. Season the chicken.\n2. Grill until cooked.\n3. Cook the rice.\n4. Serve with chopped tomatoes.',
-      calories: 550,
-      isForDiabetes: true,
-      isLowSalt: false,
-      isVegetarian: false,
-    ),
-    Recipe(
-      title: 'Simple Tomato Rice',
-      ingredients: ['Rice', 'Tomatoes'],
-      steps:
-          '1. Cook rice.\n2. Prepare tomato sauce.\n3. Mix together and serve warm.',
-      calories: 420,
-      isForDiabetes: false,
-      isLowSalt: true,
-      isVegetarian: true,
-    ),
-  ];
-
-  HealthProfile _healthProfile = HealthProfile();
-
-  void _toggleLanguage() {
-    setState(() {
-      _lang = _lang == AppLang.en ? AppLang.ar : AppLang.en;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final strings = AppStrings(_lang);
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LangProvider()),
+        ChangeNotifierProvider(create: (_) => PantryProvider()),
+        ChangeNotifierProvider(create: (_) => RecipeProvider()),
+        ChangeNotifierProvider(create: (_) => MealPlanProvider()),
+        ChangeNotifierProvider(create: (_) => ShoppingListProvider()),
+        ChangeNotifierProvider(create: (_) => CookingHistoryProvider()),
+        ChangeNotifierProvider(create: (_) => HealthProvider()),
+      ],
+      child: Consumer3<AuthProvider, ThemeProvider, LangProvider>(
+        builder: (context, auth, theme, langProvider, child) {
+          final lang = langProvider.lang;
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: strings.appTitle,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF2F4F7),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3BB89C),
-        ),
-        textTheme: const TextTheme(
-          headlineLarge: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-          titleMedium: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
-          ),
-        ),
-      ),
-      home: Directionality(
-        textDirection: strings.direction,
-        child: HomePage(
-          lang: _lang,
-          onToggleLang: _toggleLanguage,
-          ingredients: _ingredients,
-          recipes: _recipes,
-          healthProfile: _healthProfile,
-          onHealthProfileChanged: (p) => setState(() {
-            _healthProfile = p;
-          }),
-          onIngredientsChanged: () => setState(() {}),
-        ),
+          // Bind all data providers to the current user when logged in
+          if (auth.isLoggedIn && auth.uid != null) {
+            final uid = auth.uid!;
+            context.read<PantryProvider>().bindUser(uid);
+            context.read<ShoppingListProvider>().bindUser(uid);
+            context.read<CookingHistoryProvider>().bindUser(uid);
+            context.read<HealthProvider>().bindUser(uid);
+            context.read<RecipeProvider>().bindUser(uid);
+            context.read<MealPlanProvider>().bindUser(uid, context.read<RecipeProvider>().allRecipes);
+          }
+
+          return MaterialApp(
+            scaffoldMessengerKey: SnackbarHelper.key,
+            title: 'FitKitchen',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: theme.themeMode,
+            builder: (context, child) {
+              return Directionality(
+                textDirection: lang == AppLang.ar ? TextDirection.rtl : TextDirection.ltr,
+                child: child!,
+              );
+            },
+            home: auth.isInitializing
+                ? const SplashScreen()
+                : auth.isLoggedIn
+                    ? MainShell(lang: lang)
+                    : LoginScreen(lang: lang, onToggleLang: () => langProvider.toggle()),
+          );
+        },
       ),
     );
   }
