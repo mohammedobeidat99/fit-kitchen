@@ -1,16 +1,19 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../../core/services/local_storage_service.dart';
 import '../../../models/user_model.dart';
-import 'package:local_auth/local_auth.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LocalAuthentication _localAuth = LocalAuthentication();
+
+  StreamSubscription<DocumentSnapshot>? _userSubscription;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -38,6 +41,9 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isEmailVerified =>
       _firebaseAuth.currentUser?.emailVerified ?? false;
+
+  String? get userName => _currentUser?.name;
+  String? get userImageUrl => _currentUser?.imageUrl;
 
   AuthProvider() {
     _initAuth();
@@ -89,17 +95,13 @@ class AuthProvider extends ChangeNotifier {
 
         // Check if user is still logged in after reload attempt
         if (_firebaseAuth.currentUser != null) {
-          _currentUser = UserModel(
-            uid: _firebaseAuth.currentUser!.uid,
-            name: _firebaseAuth.currentUser!.displayName ?? 'User',
-            email: _firebaseAuth.currentUser!.email ?? '',
-            emailVerified: _firebaseAuth.currentUser!.emailVerified,
-          );
+          _isLoggedIn = true; // Set logged in before starting sync
+          _startUserSync(_firebaseAuth.currentUser!.uid);
           
           // If biometric feature is explicitly enabled, don't automatically log in.
           // Force them to the Login screen where they can click the Biometric button.
-          if (!_biometricEnabled) {
-            _isLoggedIn = true;
+          if (_biometricEnabled) {
+            _isLoggedIn = false; // Override if biometric required
           }
         }
       }
@@ -214,18 +216,20 @@ class AuthProvider extends ChangeNotifier {
         return 'email_not_verified';
       }
 
-      _currentUser = UserModel(
-        uid: user.uid,
-        name: user.displayName ?? 'User',
-        email: user.email ?? '',
-        emailVerified: user.emailVerified,
-      );
       _isLoggedIn = true;
+      _startUserSync(user.uid);
 
       // Save user info locally for biometric re-login
       if (_rememberMe) {
+        // We'll save the profile once we get the first sync data, or just save minimal info now
         await LocalStorageService.setString(
-            LocalStorageService.keyUser, jsonEncode(_currentUser!.toJson()));
+            LocalStorageService.keyUser, 
+            jsonEncode({
+              'uid': user.uid,
+              'name': user.displayName ?? 'User',
+              'email': user.email ?? '',
+            })
+        );
       }
 
       _isLoading = false;
@@ -275,13 +279,8 @@ class AuthProvider extends ChangeNotifier {
         
         if (firebaseUser != null) {
           debugPrint('[AuthProvider] Active Firebase Session FOUND! UID: ${firebaseUser.uid}');
-          _currentUser = UserModel(
-            uid: firebaseUser.uid,
-            name: firebaseUser.displayName ?? 'User',
-            email: firebaseUser.email ?? '',
-            emailVerified: firebaseUser.emailVerified,
-          );
           _isLoggedIn = true;
+          _startUserSync(firebaseUser.uid);
           notifyListeners();
           debugPrint('[AuthProvider] Successfully logged in using ACTIVE Firebase token.');
           return null; // Success
@@ -293,7 +292,7 @@ class AuthProvider extends ChangeNotifier {
         
         if (userJson != null) {
           debugPrint('[AuthProvider] Found cached JSON in LocalStorage.');
-          _currentUser = UserModel.fromJson(jsonDecode(userJson));
+          _currentUser = UserModel.fromJson(json.decode(userJson));
           _isLoggedIn = true;
           notifyListeners();
           debugPrint('[AuthProvider] Successfully logged in using OFFLINE cached JSON fallback.');
@@ -370,6 +369,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _isLoggedIn = false;
     _currentUser = null;
+    _userSubscription?.cancel();
+    _userSubscription = null;
     await _firebaseAuth.signOut();
     
     // Do NOT delete the local JSON if biometric is enabled, 
@@ -379,6 +380,42 @@ class AuthProvider extends ChangeNotifier {
     }
     
     notifyListeners();
+  }
+
+  void _startUserSync(String uid) {
+    _userSubscription?.cancel();
+    _userSubscription = _firestore
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        _currentUser = UserModel(
+          uid: uid,
+          name: data['name'] ?? 'User',
+          email: data['email'] ?? '',
+          imageUrl: data['imageUrl'],
+          emailVerified: _firebaseAuth.currentUser?.emailVerified ?? false,
+        );
+        
+        // Cache the latest data if rememberMe is on
+        if (_rememberMe) {
+          LocalStorageService.setString(
+            LocalStorageService.keyUser,
+            json.encode(_currentUser!.toJson()),
+          );
+        }
+        
+        notifyListeners();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    super.dispose();
   }
 
   /// Send password reset email via Firebase

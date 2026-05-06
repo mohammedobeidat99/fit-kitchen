@@ -253,6 +253,15 @@ class _IngredientCard extends StatelessWidget {
                   '${item.quantity.toStringAsFixed(0)} ${item.unit} · ${item.category}',
                   style: TextStyle(color: AppTheme.getSubtitleColor(context), fontSize: 13),
                 ),
+                if (item.expirationDate != null)
+                  Text(
+                    '${strings.isAr ? "ينتهي:" : "Expires:"} ${item.expirationDate!.day}/${item.expirationDate!.month}/${item.expirationDate!.year}',
+                    style: TextStyle(
+                      color: item.isExpiringSoon ? Colors.orangeAccent : (item.isExpired ? Colors.redAccent : AppTheme.getSubtitleColor(context)),
+                      fontSize: 11,
+                      fontWeight: (item.isExpiringSoon || item.isExpired) ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
               ],
             ),
           ),

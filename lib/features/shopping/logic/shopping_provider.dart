@@ -50,6 +50,9 @@ class ShoppingListProvider extends ChangeNotifier {
           unit: data['unit'] ?? 'pcs',
           category: data['category'] ?? 'Other',
           isChecked: data['isChecked'] ?? false,
+          expirationDate: data['expirationDate'] != null 
+              ? (data['expirationDate'] as Timestamp).toDate() 
+              : null,
         ));
       }
       notifyListeners();
@@ -64,7 +67,7 @@ class ShoppingListProvider extends ChangeNotifier {
     return map;
   }
 
-  Future<void> addItem(String name, double qty, String unit, String category) async {
+  Future<void> addItem(String name, double qty, String unit, String category, {DateTime? expiryDate}) async {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final item = ShoppingItem(
       id: id,
@@ -72,6 +75,7 @@ class ShoppingListProvider extends ChangeNotifier {
       quantity: qty,
       unit: unit,
       category: category,
+      expirationDate: expiryDate,
     );
     _items.add(item);
     notifyListeners();
@@ -83,6 +87,7 @@ class ShoppingListProvider extends ChangeNotifier {
         'unit': unit,
         'category': category,
         'isChecked': false,
+        'expirationDate': expiryDate,
       });
     }
   }
@@ -119,7 +124,7 @@ class ShoppingListProvider extends ChangeNotifier {
         quantity: item.quantity,
         unit: item.unit,
         category: item.category,
-        expirationDate: DateTime.now().add(const Duration(days: 14)),
+        expirationDate: item.expirationDate ?? DateTime.now().add(const Duration(days: 7)),
       ));
     }
 

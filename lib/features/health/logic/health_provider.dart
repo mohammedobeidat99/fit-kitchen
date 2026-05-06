@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/firestore_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../models/health_profile.dart';
 
 class HealthProvider extends ChangeNotifier {
@@ -15,6 +16,7 @@ class HealthProvider extends ChangeNotifier {
   HealthProvider() {
     _checkDailyReset();
     _scheduleMidnightReset();
+    _notificationService.init();
   }
 
   @override
@@ -143,6 +145,14 @@ class HealthProvider extends ChangeNotifier {
   int _waterGoal = 8;
   int get waterGoal => _waterGoal;
 
+  bool _waterReminderEnabled = false;
+  bool get waterReminderEnabled => _waterReminderEnabled;
+
+  int _waterReminderInterval = 30; // Minutes
+  int get waterReminderInterval => _waterReminderInterval;
+
+  final NotificationService _notificationService = NotificationService();
+
   double get calorieProgress => (_dailyCaloriesConsumed / _calorieTarget).clamp(0.0, 1.0);
 
   int get healthScore {
@@ -229,5 +239,19 @@ class HealthProvider extends ChangeNotifier {
       }
     }
     return true;
+  }
+
+  void updateWaterReminder(bool enabled, int intervalMinutes) {
+    _waterReminderEnabled = enabled;
+    _waterReminderInterval = intervalMinutes;
+    
+    if (enabled) {
+      _notificationService.scheduleWaterReminder(intervalMinutes);
+    } else {
+      _notificationService.cancelAll();
+    }
+    
+    notifyListeners();
+    _saveToFirestore();
   }
 }

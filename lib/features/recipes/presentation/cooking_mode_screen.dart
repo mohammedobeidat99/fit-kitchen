@@ -4,6 +4,10 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../../../models/recipe.dart';
 import '../../../core/theme/app_theme.dart';
 import '../logic/recipe_provider.dart';
+import '../../community/logic/feed_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+
 import '../../../core/constants/app_strings.dart';
 
 class CookingModeScreen extends StatefulWidget {
@@ -74,8 +78,55 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
 
   void _finishCooking() {
     context.read<RecipeProvider>().markAsCooked(context, widget.recipe);
-    Navigator.pop(context); // Back to Details
-    Navigator.pop(context, true); // Back to Home/Search and passing cooked state
+    
+    // Show Share Dialog
+    _showShareDialog();
+  }
+
+  void _showShareDialog() {
+    final isAr = widget.lang == AppLang.ar;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(isAr ? 'أحسنت! 🥗' : 'Great Job! 🥗'),
+        content: Text(isAr 
+          ? 'هل تود مشاركة وجبتك مع مجتمع فيت كيتشن؟' 
+          : 'Would you like to share your meal with the FitKitchen community?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(this.context); // Back to Details
+              Navigator.pop(this.context, true); // Back to Home
+            },
+            child: Text(isAr ? 'ليس الآن' : 'Not Now'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final picker = ImagePicker();
+              final image = await picker.pickImage(source: ImageSource.gallery);
+              if (image != null) {
+                if (mounted) {
+                   // In a real app, we'd show a form for comment/rating.
+                   // For this demo, we'll auto-post with a default comment.
+                   await context.read<FeedProvider>().shareMeal(
+                     recipeTitle: widget.recipe.title,
+                     imageFile: File(image.path),
+                     rating: 5.0,
+                     comment: isAr ? 'طبخت هذه الوجبة اللذيذة اليوم!' : 'Cooked this delicious meal today!',
+                   );
+                   Navigator.pop(context); // Close dialog
+                   Navigator.pop(this.context); // Back to Details
+                   Navigator.pop(this.context, true); // Back to Home
+                }
+              }
+            },
+            child: Text(isAr ? 'شارك الآن' : 'Share Now'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

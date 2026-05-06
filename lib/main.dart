@@ -18,6 +18,8 @@ import 'features/meal_planner/logic/meal_plan_provider.dart';
 import 'features/shopping/logic/shopping_provider.dart';
 import 'features/history/logic/cooking_history_provider.dart';
 import 'features/health/logic/health_provider.dart';
+import 'features/community/logic/feed_provider.dart';
+
 
 // Screens
 import 'features/auth/presentation/login_screen.dart';
@@ -49,6 +51,7 @@ class FitKitchenApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ShoppingListProvider()),
         ChangeNotifierProvider(create: (_) => CookingHistoryProvider()),
         ChangeNotifierProvider(create: (_) => HealthProvider()),
+        ChangeNotifierProvider(create: (_) => FeedProvider()),
       ],
       child: Consumer3<AuthProvider, ThemeProvider, LangProvider>(
         builder: (context, auth, theme, langProvider, child) {
@@ -62,6 +65,7 @@ class FitKitchenApp extends StatelessWidget {
             context.read<CookingHistoryProvider>().bindUser(uid);
             context.read<HealthProvider>().bindUser(uid);
             context.read<RecipeProvider>().bindUser(uid);
+            context.read<FeedProvider>().bindUser(uid, auth.userName ?? 'User', auth.userImageUrl);
             context.read<MealPlanProvider>().bindUser(uid, context.read<RecipeProvider>().allRecipes);
           }
 

@@ -9,6 +9,8 @@ import '../features/recipes/presentation/meal_suggestions_screen.dart';
 import '../features/meal_planner/presentation/weekly_planner_screen.dart';
 import '../features/shopping/presentation/shopping_list_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/community/presentation/feed_screen.dart';
+
 
 class MainShell extends StatefulWidget {
   final AppLang lang;
@@ -33,6 +35,7 @@ class _MainShellState extends State<MainShell> {
       HomeScreen(lang: lang, onNavigate: (index) => setState(() => _currentIndex = index)),
       PantryScreen(lang: lang),
       MealSuggestionsScreen(lang: lang),
+      const FeedScreen(),
       WeeklyPlannerScreen(lang: lang),
       ShoppingListScreen(lang: lang),
     ];
@@ -73,6 +76,10 @@ class _MainShellState extends State<MainShell> {
             BottomNavigationBarItem(
               icon: const Icon(Icons.lightbulb_outline_rounded),
               label: isAr ? 'اقتراحات' : 'Ideas',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.people_rounded),
+              label: isAr ? 'المجتمع' : 'Community',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.calendar_today_rounded),

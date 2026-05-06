@@ -46,6 +46,11 @@ dependencies:
   firebase_auth: any
   cloud_firestore: any
   flutter_tts: ^4.2.5
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  firebase_storage: ^13.3.0
+  flutter_local_notifications: ^17.0.1
+  timezone: ^0.9.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

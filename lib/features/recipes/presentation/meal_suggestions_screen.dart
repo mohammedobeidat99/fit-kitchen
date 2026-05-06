@@ -86,7 +86,12 @@ class MealSuggestionsScreen extends StatelessWidget {
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
-                      recipes.generateAiSuggestions(pantryNames);
+                      recipes.generateAiSuggestions(
+                        pantryNames,
+                        avoidedKeywords: health.profile.avoidedIngredientKeywords,
+                        isDiabetic: health.profile.hasDiabetes,
+                        isHypertensive: health.profile.hasHighBloodPressure,
+                      );
                     },
                 icon: recipes.isGeneratingAiRecipes
                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -99,8 +104,8 @@ class MealSuggestionsScreen extends StatelessWidget {
             ),
           ),
           
-          // AI Suggestions Banner
-          if (recipes.aiSuggestions.isNotEmpty) ...[
+          // AI Suggestions Banner (Main Meals)
+          if (recipes.aiSuggestions.any((r) => r.category != 'Dessert')) ...[
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
@@ -109,7 +114,7 @@ class MealSuggestionsScreen extends StatelessWidget {
                     const Icon(Icons.psychology, color: Colors.deepPurple, size: 24),
                     const SizedBox(width: 8),
                     Text(
-                      isAr ? 'اقتراحات ذكية' : 'AI Smart Suggestions',
+                      isAr ? 'اقتراحات ذكية (وجبات)' : 'AI Smart Suggestions (Meals)',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
                     ),
                   ],
@@ -119,13 +124,47 @@ class MealSuggestionsScreen extends StatelessWidget {
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final recipe = recipes.aiSuggestions[index];
+                  final meals = recipes.aiSuggestions.where((r) => r.category != 'Dessert').toList();
+                  final recipe = meals[index];
                   final matched = recipe.ingredients.where((ing) => pantryNames.any((p) => p.toLowerCase().contains(ing.toLowerCase()) || ing.toLowerCase().contains(p.toLowerCase()))).toList();
                   final missing = recipe.ingredients.where((ing) => !pantryNames.any((p) => p.toLowerCase().contains(ing.toLowerCase()) || ing.toLowerCase().contains(p.toLowerCase()))).toList();
                   final ratio = recipe.ingredients.isEmpty ? 0.0 : matched.length / recipe.ingredients.length;
                   return _buildMatchCard(recipe, matched, missing, ratio, context, lang, isAr, strings, isAiSuggestion: true);
                 },
-                childCount: recipes.aiSuggestions.length,
+                childCount: recipes.aiSuggestions.where((r) => r.category != 'Dessert').length,
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppTheme.spacingM)),
+          ],
+
+          // AI Desserts Section
+          if (recipes.aiSuggestions.any((r) => r.category == 'Dessert')) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
+                child: Row(
+                  children: [
+                    const Icon(Icons.icecream_rounded, color: Colors.pinkAccent, size: 24),
+                    const SizedBox(width: 8),
+                    Text(
+                      isAr ? 'حلويات صحية ذكية' : 'Smart Healthy Desserts',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.pinkAccent),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final desserts = recipes.aiSuggestions.where((r) => r.category == 'Dessert').toList();
+                  final recipe = desserts[index];
+                  final matched = recipe.ingredients.where((ing) => pantryNames.any((p) => p.toLowerCase().contains(ing.toLowerCase()) || ing.toLowerCase().contains(p.toLowerCase()))).toList();
+                  final missing = recipe.ingredients.where((ing) => !pantryNames.any((p) => p.toLowerCase().contains(ing.toLowerCase()) || ing.toLowerCase().contains(p.toLowerCase()))).toList();
+                  final ratio = recipe.ingredients.isEmpty ? 0.0 : matched.length / recipe.ingredients.length;
+                  return _buildMatchCard(recipe, matched, missing, ratio, context, lang, isAr, strings, isAiSuggestion: true);
+                },
+                childCount: recipes.aiSuggestions.where((r) => r.category == 'Dessert').length,
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppTheme.spacingM)),

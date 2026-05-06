@@ -411,14 +411,24 @@ class RecipeProvider extends ChangeNotifier {
   List<Recipe> _aiSuggestions = [];
   List<Recipe> get aiSuggestions => _aiSuggestions;
 
-  Future<void> generateAiSuggestions(List<String> pantryIngredients) async {
+  Future<void> generateAiSuggestions(
+    List<String> pantryIngredients, {
+    Set<String> avoidedKeywords = const {},
+    bool isDiabetic = false,
+    bool isHypertensive = false,
+  }) async {
     _isGeneratingAiRecipes = true;
     notifyListeners();
     try {
       // Retain already pinned AI recipes so they are not deleted
       final pinnedAi = _aiSuggestions.where((r) => r.isFavorite).toList();
       
-      final newAi = await _aiRecipeService.generateRecipes(pantryIngredients);
+      final newAi = await _aiRecipeService.generateRecipes(
+        pantryIngredients,
+        avoidedKeywords: avoidedKeywords,
+        isDiabetic: isDiabetic,
+        isHypertensive: isHypertensive,
+      );
       
       _aiSuggestions = [...pinnedAi, ...newAi];
     } catch (e) {

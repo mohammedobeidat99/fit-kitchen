@@ -51,6 +51,42 @@ class HealthProfileScreen extends StatelessWidget {
 
           const SizedBox(height: AppTheme.spacingXL),
 
+          // ── Water Reminders ────────────────────────────────────
+          SectionHeader(title: isAr ? 'تنبيهات شرب الماء' : 'Water Reminders'),
+          _HealthToggle(
+            title: isAr ? 'تفعيل التنبيهات' : 'Enable Reminders',
+            subtitle: isAr ? 'للحفاظ على رطوبة جسمك' : 'Stay hydrated throughout the day',
+            icon: Icons.notifications_active_rounded,
+            value: health.waterReminderEnabled,
+            onChanged: (v) => health.updateWaterReminder(v, health.waterReminderInterval),
+          ),
+          if (health.waterReminderEnabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isAr 
+                      ? 'تكرار التنبيه: كل ${health.waterReminderInterval} دقيقة' 
+                      : 'Reminder Interval: Every ${health.waterReminderInterval} mins',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  Slider(
+                    value: health.waterReminderInterval.toDouble(),
+                    min: 15,
+                    max: 120,
+                    divisions: 7,
+                    label: '${health.waterReminderInterval} min',
+                    activeColor: AppTheme.primary,
+                    onChanged: (v) => health.updateWaterReminder(true, v.toInt()),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: AppTheme.spacingXL),
+
           // ── Conditions & Preferences ───────────────────────────
           SectionHeader(title: isAr ? 'حالات خاصة' : 'Conditions & Preferences'),
           Padding(

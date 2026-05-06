@@ -5,6 +5,7 @@ class ShoppingItem {
   String unit;
   String category;
   bool isChecked;
+  DateTime? expirationDate;
 
   ShoppingItem({
     String? id,
@@ -13,5 +14,6 @@ class ShoppingItem {
     this.unit = 'pcs',
     this.category = 'Other',
     this.isChecked = false,
+    this.expirationDate,
   }) : id = id ?? DateTime.now().millisecondsSinceEpoch.toString();
 }

@@ -13,6 +13,9 @@ import '../../../features/settings/logic/lang_provider.dart';
 import '../../../models/recipe.dart';
 import '../../../models/planned_meal.dart';
 import '../../../features/recipes/presentation/recipe_details_screen.dart';
+import '../../../core/services/pdf_service.dart';
+import '../../../features/shopping/logic/shopping_provider.dart';
+
 
 class WeeklyPlannerScreen extends StatelessWidget {
   final AppLang lang;
@@ -70,6 +73,25 @@ class WeeklyPlannerScreen extends StatelessWidget {
             icon: const Icon(Icons.auto_awesome, color: AppTheme.primary),
             tooltip: isAr ? 'توليد بناءً على المخزن' : 'Generate from Pantry',
           ),
+          if (mealPlan.totalMealsPlanned > 0)
+            IconButton(
+              onPressed: () {
+                final shoppingProv = context.read<ShoppingListProvider>();
+                // We need to pass the private _weeklyPlan map, 
+                // but since it's not exposed, I'll add a getter for it in MealPlanProvider or reconstruct it.
+                // Reconstructing is cleaner for now without changing Provider too much.
+                final Map<String, List<PlannedMeal>> fullPlan = {};
+                for (var day in MealPlanProvider.days) {
+                  fullPlan[day] = mealPlan.getMealsForDay(day);
+                }
+                PdfService.generateMealPlanPdf(
+                  weeklyPlan: fullPlan,
+                  shoppingList: shoppingProv.items,
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.blueAccent),
+              tooltip: isAr ? 'تصدير PDF' : 'Export PDF',
+            ),
           if (mealPlan.totalMealsPlanned > 0)
             IconButton(
               onPressed: () => mealPlan.clearAll(),
